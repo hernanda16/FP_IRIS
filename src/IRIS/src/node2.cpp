@@ -13,9 +13,9 @@
 using namespace std;
 
 int basestatus;
-int resstats,prevstats,stats,xtu,ytu,temp,prevtuy,prevtux;
-int bx,by,vth=10;
-double posth,posx,posy,vx=10,vy=10,thtemp=-180;
+int resstats,prevstats,stats,xtu,ytu,temp,prevtuy,prevtux,prevth=0;
+int bx,by,vth=10,jarak=100,spn=2;
+double posth,posx,posy,vx=10,vy=10,thtemp=-180,thspn;
 char prevkeyb,keyb;
 
 ros::Timer init;
@@ -64,6 +64,8 @@ void reset(const ros::TimerEvent &msg){
         posth=0;
         vx=10;
         vy=10;
+        spn=2;
+        thtemp=-180;
         reset.pos_x=posx;
         reset.pos_y=posy;
         reset.pos_theta=posth;
@@ -249,13 +251,13 @@ void status1(){
 }
 
 void status2(){
-    static float v_x=vx*0.5;
-    static float v_y=vy*0.5;
+    static float v_x2=vx*0.5;
+    static float v_y2=vy*0.5;
     double sudut=atan2((double)by,(double)bx);
     posth=sudut*DEG;// jadi degree
     if(abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))>=5){
-        vx=v_x*cos(sudut);
-        vy=v_y*sin(sudut);
+        vx=v_x2*cos(sudut);
+        vy=v_y2*sin(sudut);
         posx+=vx;
         posy+=vy;
         cout<<sudut<<" "<<posth<<" "<<posx<<" "<<posy<<endl;
@@ -265,8 +267,8 @@ void status2(){
 }
 
 void status3(){
-    static float v_x=vx*0.5;
-    static float v_y=vy*0.5;
+    static float v_x3=vx*0.5;
+    static float v_y3=vy*0.5;
 
     // if(ytu-posy>5){
     //     posy+=vy; 
@@ -298,70 +300,111 @@ void status3(){
     }
     if(abs(xtu-posx)>0&&abs(ytu-posy)>0){
         if(abs(sqrt(pow(xtu,2)+pow(ytu,2))-sqrt(pow(posx,2)+pow(posy,2)))>=3){
-            vx=v_x*cos(posth*RAD);
-            vy=v_y*sin(posth*RAD);
+            vx=v_x3*cos(posth*RAD);
+            vy=v_y3*sin(posth*RAD);
             posx+=vx;
             posy+=vy;
+            vx*=2;
+            vy*=2;
         }else{
             posx=xtu;
             posy=ytu;
         }
-    vx*=2;
-    vy*=2;
     }
 }
 
 void status4(){
+    static float v_x=vx*0.5;
+    static float v_y=vy*0.5;
 
-
-
-
-    static int count=0;
-    int cacah=count;
-    
-    double sudut=atan2((double)by,(double)bx);
-    if(count==0){
+    double sudut=atan2((double)by-(double)posy,(double)bx-(double)posx);
+    if(posx==0&&posy==0){
+        cout<<sudut*DEG<<" "<<thtemp<<endl;
         posth=sudut*DEG;
-        // cout<<posth<<" "<<"kok gak masuk ";
+        thspn=posth;
     }
-    static float tmp=posth;
-    static int sdt=posth;
-    cout<<tmp<<"   "<<thtemp<<"\n";
-    if(abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))>100&&count==0){
-        posx+=5*cos(sudut);
-        posy+=5*sin(sudut);
+    if(abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))>jarak){
+        vx=v_x*cos(posth*RAD);
+        vy=v_y*sin(posth*RAD);
+        posx+=vx;
+        posy+=vy;
+        vx*=2;
+        vy*=2;
+    }else if(abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))<jarak+1&&spn>0){
+        cout<<posth+thtemp<<endl;
+        posx=bx+jarak*cos((thspn+thtemp)*RAD);
+        posy=by+jarak*sin((thspn+thtemp)*RAD);
+        vx=v_x*cos((thspn+thtemp)*RAD);
+        vy=v_y*sin((thspn+thtemp)*RAD);       
+        if(thtemp>180){
+            thtemp=-179;
+            spn--;
+        }else{
+            thtemp++;
+        }
+        vth=posth-prevth;
+        prevth=posth;
+        posth=sudut*DEG;
+        vx*=2;
+        vy*=2;
+    }else if(abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))<jarak+1&&abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))>=2&&spn==0){
+        vx=v_x*cos(posth*RAD);
+        vy=v_y*sin(posth*RAD);
+        posx+=vx;
+        posy+=vy;
+        vx*=2;
+        vy*=2;
+    }else if(abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))<3&&spn==0){
+        posx=bx;
+        posy=by;
     }
-    if(abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))<=101&&count<390){
-        std::cout<<count<<"  ";
-        if(count<360){
-            // vx=vx*cos((thtemp+tmp)*RAD);
-            // vy=vy*sin((thtemp+tmp)*RAD);
-            posx=bx+100*cos((thtemp+tmp)*RAD);
-            posy=by+100*sin((thtemp+tmp)*RAD);
-            if(thtemp>180){
-                thtemp=-179;
-            }else{
-                thtemp++;
-            }
-            if(tmp>180){
-                tmp=-179;
-            }else{
-                tmp++;
-            }
-            if(posth>180){
-                posth=-179;
-            }else{
-                posth+=2;
-            }
+
+    // static int count=0;
+    // int cacah=count;
+    
+    // // double sudut=atan2((double)by,(double)bx);
+    // if(count==0){
+    //     posth=sudut*DEG;
+    //     // cout<<posth<<" "<<"kok gak masuk ";
+    // }
+    // static float tmp=posth;
+    // static int sdt=posth;
+    // cout<<tmp<<"   "<<thtemp<<"\n";
+    // if(abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))>100&&count==0){
+    //     posx+=5*cos(sudut);
+    //     posy+=5*sin(sudut);
+    // }
+    // if(abs(sqrt(pow(bx,2)+pow(by,2))-sqrt(pow(posx,2)+pow(posy,2)))<=101&&count<390){
+    //     std::cout<<count<<"  ";
+    //     if(count<360){
+    //         // vx=vx*cos((thtemp+tmp)*RAD);
+    //         // vy=vy*sin((thtemp+tmp)*RAD);
+    //         posx=bx+100*cos((thtemp+tmp)*RAD);
+    //         posy=by+100*sin((thtemp+tmp)*RAD);
+    //         if(thtemp>180){
+    //             thtemp=-179;
+    //         }else{
+    //             thtemp++;
+    //         }
+    //         if(tmp>180){
+    //             tmp=-179;
+    //         }else{
+    //             tmp++;
+    //         }
+    //         if(posth>180){
+    //             posth=-179;
+    //         }else{
+    //             posth+=2;
+    //         }
                                 
-        }
-        count++;
-        // std::cout<<cacah<<"----";
-        if(abs(sqrt(pow(xtu,2)+pow(ytu,2))-sqrt(pow(posx,2)+pow(posy,2)))>=2&&cacah>=359){
-            posx+=5*cos((posth)*RAD);
-            posy+=5*sin((posth)*RAD);
-        }
-    } 
+    //     }
+    //     count++;
+    //     // std::cout<<cacah<<"----";
+    //     if(abs(sqrt(pow(xtu,2)+pow(ytu,2))-sqrt(pow(posx,2)+pow(posy,2)))>=2&&cacah>=359){
+    //         posx+=5*cos((posth)*RAD);
+    //         posy+=5*sin((posth)*RAD);
+    //     }
+    // } 
 }
 
 //input keyboard googling
